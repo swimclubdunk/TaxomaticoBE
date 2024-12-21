@@ -4,7 +4,7 @@ If you want to download a readymade Unity build you can get it here:
 
 [Google Drive](https://drive.google.com/file/d/1IZDeEDvRzKEEVCFk72gODsMZtig56rad/view?usp=sharing)
 
-[![YOUTUBE DEMO](https://img.youtube.com/vi/TCXXBUL1zcI/0.jpg)](https://www.youtube.com/watch?v=TCXXBUL1zcI)
+[![YOUTUBE DEMO](https://img.youtube.com/vi/TCXXBUL1zcI/0.jpg)](https://www.youtube.com/embed/TCXXBUL1zcI)
 
 
 
