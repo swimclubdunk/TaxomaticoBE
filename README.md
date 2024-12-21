@@ -4,6 +4,5 @@ If you want to download a readymade Unity build you can get it here:
 
 [Google Drive](https://drive.google.com/file/d/1IZDeEDvRzKEEVCFk72gODsMZtig56rad/view?usp=sharing)
 
-<iframe width="2560" height="1271" src="https://www.youtube.com/embed/TCXXBUL1zcI" title="TaxomaticoBE demo" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-
+https://github.com/user-attachments/assets/0c2419c3-6748-44a6-8569-3764329834b5
 
