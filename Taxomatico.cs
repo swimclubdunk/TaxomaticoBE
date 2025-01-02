@@ -2,23 +2,31 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
-public class Taxomatico : MonoBehaviour
+public class Benis : MonoBehaviour
 {
-    // Inpout components
+    [SerializeField] FodFinDataSet[] fodFinDataSets;
+    [SerializeField] int defaultDataSetIndex = 4;
+    FodFinDataSet finData;
+    [Space(10)]
+
+    // Input components
+    [SerializeField] TMP_Dropdown input_taxYear;
     [SerializeField] TMP_InputField input_children;
     [SerializeField] Toggle toggle_nonWorkingSpouse;
     [SerializeField] Toggle toggle_accountSocialInsurance;
+    [SerializeField] Toggle toggle_addChildBenefitsToNetIncome;
     [SerializeField] TMP_InputField input_earnedEuroPerHour;
     [SerializeField] TMP_InputField input_workedHoursPerDay;
     [SerializeField] TMP_InputField input_workedDaysPerWeek;
     [SerializeField] TMP_InputField input_undeclaredHoursPerMonth;
     [SerializeField] TextMeshProUGUI deductFactVal;
-    [SerializeField] Slider deductFactSlider;
+    [SerializeField] Slider input_deductFactSlider;
     [Range(0f, 1f)] [SerializeField] double DeductiblesFactor = 0.1f;
 
     int Children;
     bool NonWorkingSpouse = true;
     bool AccountForSocialInsurance = true;
+    bool AddChildBenefitsToNetIncome = false;    
     double EuroPerHour = 20f;
     int WorkedHoursPerDay = 8;
     int DaysWorkedPerWeek = 5;
@@ -34,6 +42,7 @@ public class Taxomatico : MonoBehaviour
     double taxableIncome;
     double taxBurdenYearly;
     double socialBurdenYearly;
+    double childBenefitsYearly;
 
     // Outpout components
     [SerializeField] TextMeshProUGUI GrossEearningsPerMonth;
@@ -71,16 +80,36 @@ public class Taxomatico : MonoBehaviour
         input_workedDaysPerWeek.text = 5.ToString();
         input_workedHoursPerDay.text = 8.ToString();
 
+        toggle_addChildBenefitsToNetIncome.isOn = AddChildBenefitsToNetIncome;
         toggle_accountSocialInsurance.isOn = AccountForSocialInsurance;
         toggle_nonWorkingSpouse.isOn = NonWorkingSpouse;
-        //toggle_childBenefits.isOn = ChildBenefits;
 
-        deductFactSlider.value = 0.1f;
+        input_deductFactSlider.value = 0.1f;
 
         Application.targetFrameRate = 60;        
-        Screen.fullScreenMode = FullScreenMode.Windowed;        
+        Screen.fullScreenMode = FullScreenMode.Windowed;
+        Screen.SetResolution(438, 618, false);
+
+        AssembleTaxYearData();
     }
 
+    void AssembleTaxYearData()
+    {
+        System.Collections.Generic.List<string> newOptions = new System.Collections.Generic.List<string>();
+        
+        for(int i = 0; i<fodFinDataSets.Length;i++)
+            newOptions.Add(fodFinDataSets[i].label);
+
+        input_taxYear.ClearOptions();
+        input_taxYear.AddOptions(newOptions);
+
+        if(input_taxYear.options.Count <= defaultDataSetIndex)
+            input_taxYear.value = defaultDataSetIndex;
+        else
+            input_taxYear.value = input_taxYear.options.Count;
+    }
+
+//--// Main Loop
     void Update()
     {
         ReadInput();
@@ -92,27 +121,46 @@ public class Taxomatico : MonoBehaviour
 //--// Stores variable values based on user input
     void ReadInput()
     {
+        finData = null;
+        for (int i = 0; i < input_taxYear.options.Count; i++)
+        {
+            if (input_taxYear.options[input_taxYear.value].text == fodFinDataSets[i].label)
+            {
+                finData = fodFinDataSets[i];
+                break;
+            }
+        }
+
+        if (input_children.text == null || input_children.text == "")
+            input_children.text = "0";
         if (int.TryParse(input_children.text, out int count))
             Children = count;
 
         NonWorkingSpouse = toggle_nonWorkingSpouse.isOn;
         AccountForSocialInsurance = toggle_accountSocialInsurance.isOn;
-        //ChildBenefits = toggle_childBenefits.isOn;
+        AddChildBenefitsToNetIncome = toggle_addChildBenefitsToNetIncome.isOn;
 
+        if (input_earnedEuroPerHour.text == null || input_earnedEuroPerHour.text == "")
+            input_earnedEuroPerHour.text = "0";
         if (double.TryParse(input_earnedEuroPerHour.text, out double val0))
             EuroPerHour = val0;
 
+        if (input_workedHoursPerDay.text == null || input_workedHoursPerDay.text == "")
+            input_workedHoursPerDay.text = "0";
         if (int.TryParse(input_workedHoursPerDay.text, out int val))
             WorkedHoursPerDay = val;
 
+        if (input_workedDaysPerWeek.text == null || input_workedDaysPerWeek.text == "")
+            input_workedDaysPerWeek.text = "0";
         if (int.TryParse(input_workedDaysPerWeek.text, out int val1))
             DaysWorkedPerWeek = val1;
 
+        if (input_undeclaredHoursPerMonth.text == null || input_undeclaredHoursPerMonth.text == "")
+            input_undeclaredHoursPerMonth.text = "0";
         if (int.TryParse(input_undeclaredHoursPerMonth.text, out int val2))
             MonthlyHoursYouForgotToDeclare = val2;
 
-        if (MonthlyHoursYouForgotToDeclare < 0)
-            MonthlyHoursYouForgotToDeclare = 0;
+        if (MonthlyHoursYouForgotToDeclare < 0) MonthlyHoursYouForgotToDeclare = 0;
 
         int workedHoursPerMonth = WorkedHoursPerDay * DaysWorkedPerWeek * 4;
         if(val2 > workedHoursPerMonth)
@@ -121,8 +169,8 @@ public class Taxomatico : MonoBehaviour
             input_undeclaredHoursPerMonth.text = workedHoursPerMonth.ToString("F0");
         }
 
-        deductFactVal.text = (deductFactSlider.value * 100f).ToString("F0") + "%";
-        DeductiblesFactor = deductFactSlider.value;
+        deductFactVal.text = (input_deductFactSlider.value * 100f).ToString("F0") + "%";
+        DeductiblesFactor = input_deductFactSlider.value;
     }
 
 //--// Processes input values and stores results
@@ -142,6 +190,12 @@ public class Taxomatico : MonoBehaviour
             netEarningsPerYear = grossRealEarningsPerYear - taxBurdenYearly;
         else
             netEarningsPerYear = grossRealEarningsPerYear - taxBurdenYearly - socialBurdenYearly;
+
+        if (AddChildBenefitsToNetIncome)
+        {
+            childBenefitsYearly = GetChildBenefitsYearly(Children, netEarningsPerYear);
+            netEarningsPerYear += childBenefitsYearly;
+        }
 
         if (netEarningsPerYear < 0)
             netEarningsPerYear = 0;
@@ -169,7 +223,7 @@ public class Taxomatico : MonoBehaviour
         TaxableIncome.text = Stringify(taxableIncome);
         TaxBurdenYearly.text = Stringify(taxBurdenYearly);
         TaxBurdenMonthly.text = Stringify(taxBurdenYearly / 12d);
-        DeductedExpenses.text = Stringify(grossRealEarningsPerMonth * 12d * deductFactSlider.value);
+        DeductedExpenses.text = Stringify(grossRealEarningsPerMonth * 12d * input_deductFactSlider.value);
     }
 
 //--// Visualises relative taxation bracket distribution (normalise by sum of brackets and extend sprites rectangularly by respective amount successively)
@@ -233,10 +287,14 @@ public class Taxomatico : MonoBehaviour
 
         double burden = incomeBasis * 0.205d;
 
-        if (burden < 3460d)
-            burden = 3460d;
+        //Cap floor of value based on yearly minimum contributions data
+        if (burden < finData.sozialVerzekering_MinQuarterlyContribution * 4)
+            burden = finData.sozialVerzekering_MinQuarterlyContribution * 4;
 
-        return burden * 1.03d;
+        //Add admin fee using a value of 3.5%
+        burden *= 1.035d;
+
+        return burden;
     }
 
 //--//Returns total taxburden for tax year, absolute value
@@ -249,8 +307,12 @@ public class Taxomatico : MonoBehaviour
         amountTaxedAt45 = 0;
         amountTaxedAt50 = 0;
 
+        double v1 = finData.bracketStart_40Percent;
+        double v2 = finData.bracketStart_45Percent;
+        double v3 = finData.bracketStart_50Percent;
+
         // Process income at 25% tax bracket
-        if (taxableIncome <= 15820d)
+        if (taxableIncome <= v1)
         {
             amountTaxedAt25 = taxableIncome;
             if (amountTaxedAt25 < 0)
@@ -264,52 +326,52 @@ public class Taxomatico : MonoBehaviour
         }   
         else
         {
-            taxBurden += 15820d * 0.25d;
+            taxBurden += v1 * 0.25d;
 
-            amountTaxedAt25 = 15820d;
+            amountTaxedAt25 = v1;
         }
 
         // Process income at 40% tax bracket
-        if (taxableIncome <= 27920d)
+        if (taxableIncome <= v2)
         {
-            amountTaxedAt40 = taxableIncome - 15820d;
+            amountTaxedAt40 = taxableIncome - v1;
             if (amountTaxedAt40 < 0)
                 amountTaxedAt40 = 0;
 
             amountTaxedAt45 = 0;
             amountTaxedAt50 = 0;
 
-            return taxBurden += (taxableIncome - 15820d) * 0.4d;
+            return taxBurden += (taxableIncome - v1) * 0.4d;
         }
         else
         {
-            taxBurden += (27920d - 15820d) * 0.4d;
-            amountTaxedAt40 = 27920d - 15820d;
+            taxBurden += (v2 - v1) * 0.4d;
+            amountTaxedAt40 = v2 - v1;
         }
 
         // Process income at 45% tax bracket
-        if (taxableIncome <= 48320d)
+        if (taxableIncome <= v3)
         {
-            amountTaxedAt45 = taxableIncome - 27920d;
+            amountTaxedAt45 = taxableIncome - v2;
             if (amountTaxedAt45 < 0)
                 amountTaxedAt45 = 0;
 
             amountTaxedAt50 = 0;
 
-            return taxBurden += (taxableIncome - 27920d) * 0.45d;
+            return taxBurden += (taxableIncome - v2) * 0.45d;
         }   
         else
         {
-            taxBurden += (48320d - 27920d) * 0.45d;
-            amountTaxedAt45 = 48320d - 27920d;
+            taxBurden += (v3 - v2) * 0.45d;
+            amountTaxedAt45 = v3 - v2;
         }
 
         // Process income at 50% (maximum) tax bracket        
-        amountTaxedAt50 = taxableIncome - 48320d;
+        amountTaxedAt50 = taxableIncome - v3;
         if (amountTaxedAt50 < 0)
             amountTaxedAt50 = 0;
 
-        taxBurden += (taxableIncome - 48320d) * 0.5d;
+        taxBurden += (taxableIncome - v3) * 0.5d;
 
         if (taxBurden < 0)
             taxBurden = 0;
@@ -330,30 +392,52 @@ public class Taxomatico : MonoBehaviour
         return val;
     }
 
-    // Hardcoded values, should expose as parameters to allow user to select tax year?
-    // Returns the applicable tax free allowance, absolute value
+
+//--// Returns the applicable tax free allowance, absolute value
     double GetTaxFreeAllowance()
     {
         double ceiling;
         if (Children == 0)
-            ceiling = 10570d;
+            ceiling = finData.taxFreeAllowance;
         else if (Children == 1)
-            ceiling = 10570d + 1920d;
+            ceiling = finData.taxFreeAllowance + finData.allowanceIncreaseChildCount_1;
         else if (Children == 2)
-            ceiling = 10570d + 4410d;
+            ceiling = finData.taxFreeAllowance + finData.allowanceIncreaseChildCount_2;
         else if (Children == 3)
-            ceiling = 10570d + 11090d;
+            ceiling = finData.taxFreeAllowance + finData.allowanceIncreaseChildCount_3;
         else if (Children == 4)
-            ceiling = 10570d + 17940d;
+            ceiling = finData.taxFreeAllowance + finData.allowanceIncreaseChildCount_4;
         else
-            ceiling = 10570d + 17940d + (6850d * (Children - 4));
+            ceiling = finData.taxFreeAllowance + finData.allowanceIncreaseChildCount_4 + (finData.allowanceIncreasePerChildAboveCountFour * (Children - 4));
 
         if (NonWorkingSpouse)
-            ceiling += 13050d;
+            ceiling += finData.allowanceIncreaseNonWorkingSpouse;
 
         if (ceiling < 0)
             ceiling = 0;
 
         return ceiling;
+    }
+
+    double GetChildBenefitsYearly(int childCount, double netTaxableIncomeYearly)
+    {
+        double amount = childCount * 180d;
+
+        if(Children <= 2)
+        {
+            if(netTaxableIncomeYearly <= 40187d)
+                amount += childCount * 72d;
+            if (netTaxableIncomeYearly > 40187d && netTaxableIncomeYearly <= 46885d)
+                amount += childCount * 36d;
+        }
+        else
+        {
+            if (netTaxableIncomeYearly <= 40187d)
+                amount += childCount * 106d;
+            if (netTaxableIncomeYearly > 40187d && netTaxableIncomeYearly <= 75593d)
+                amount += childCount * 83d;
+        }
+
+        return amount * 12;
     }
 }
