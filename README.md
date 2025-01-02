@@ -1,8 +1,7 @@
-When navigating the waters of the Belgian tax system, I got fed up doing the math to calculate freelance rates. I needed a solution that allowed me to adjust and tweak values, and see the results at runtime. So I made one. Note I'm not an accountant, tax professional or lawyer, and I can take no responsability for any use or misuse of this software. The application uses data for the tax year 2024. An updated version with tax data for 2025, and perhaps previous years for comparison will soon follow.
+Elegant little rate calculator for belgian freelancers, conveniently packaged into a single self extracting executable. The great benefit of this application prior to submitting a bid for a project or entering rates negotiations, is being able to tweak values at runtime and see the tax implications and impact.
 
-If you want to download a readymade Unity build you can get it here:
+[Google Drive](https://drive.google.com/file/d/1LOJCyeoq6PfvdyJo0VC5EtvBJkJtNX9J/view?usp=sharing)
 
-[Google Drive](https://drive.google.com/file/d/1IZDeEDvRzKEEVCFk72gODsMZtig56rad/view?usp=sharing)
+https://github.com/user-attachments/assets/420fabfc-2291-4d3a-8c6e-4504bb89e02d
 
-https://github.com/user-attachments/assets/0c2419c3-6748-44a6-8569-3764329834b5
 
