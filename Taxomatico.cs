@@ -1,8 +1,4 @@
-using UnityEngine;
-using UnityEngine.UI;
-using TMPro;
-
-public class Benis : MonoBehaviour
+public class Taxomatico : MonoBehaviour
 {
     [SerializeField] FodFinDataSet[] fodFinDataSets;
     [SerializeField] int defaultDataSetIndex = 4;
