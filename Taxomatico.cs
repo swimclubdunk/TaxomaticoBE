@@ -1,6 +1,6 @@
 public class Taxomatico : MonoBehaviour
 {
-  [SerializeField] FodFinDataSet[] fodFinDataSets;
+    [SerializeField] FodFinDataSet[] fodFinDataSets;
     [SerializeField] int defaultDataSetIndex = 4;
     FodFinDataSet finData;
     [Space(10)]
