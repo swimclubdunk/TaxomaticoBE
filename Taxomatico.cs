@@ -1,6 +1,6 @@
 public class Taxomatico : MonoBehaviour
 {
-    [SerializeField] FodFinDataSet[] fodFinDataSets;
+  [SerializeField] FodFinDataSet[] fodFinDataSets;
     [SerializeField] int defaultDataSetIndex = 4;
     FodFinDataSet finData;
     [Space(10)]
@@ -39,6 +39,8 @@ public class Taxomatico : MonoBehaviour
     double taxBurdenYearly;
     double socialBurdenYearly;
     double childBenefitsYearly;
+    double amountShiftedOnNonWorkingSpouse;
+    double nonWorkingSpouseSurplusIncome;
 
     // Outpout components
     [SerializeField] TextMeshProUGUI GrossEearningsPerMonth;
@@ -84,7 +86,7 @@ public class Taxomatico : MonoBehaviour
 
         Application.targetFrameRate = 60;        
         Screen.fullScreenMode = FullScreenMode.Windowed;
-        Screen.SetResolution(438, 618, false);
+        Screen.SetResolution(490, 695, false);
 
         AssembleTaxYearData();
     }
@@ -177,7 +179,9 @@ public class Taxomatico : MonoBehaviour
         blackEarningsPerMonth = EuroPerHour * MonthlyHoursYouForgotToDeclare;
         blackEarningsPerYear = blackEarningsPerMonth * 12d;
 
-        taxFreeAllowance = GetTaxFreeAllowance();
+        double grossYearlyReportedIncomeAfterDeductions = (grossRealEarningsPerYear - blackEarningsPerYear) * (1d - DeductiblesFactor);
+        taxFreeAllowance = GetTaxFreeAllowance(grossYearlyReportedIncomeAfterDeductions);
+
         taxableIncome = GetTaxableIncome(grossRealEarningsPerYear, taxFreeAllowance, DeductiblesFactor, blackEarningsPerYear);
         socialBurdenYearly = GetSocialBurdenYearly(grossRealEarningsPerYear, DeductiblesFactor, blackEarningsPerYear);
         taxBurdenYearly = GetTaxBurdenYearly(taxableIncome);
@@ -195,31 +199,39 @@ public class Taxomatico : MonoBehaviour
 
         if (netEarningsPerYear < 0)
             netEarningsPerYear = 0;
+
+        // Process the surplus income above the personal allowance for the nonworking spouse
+        if (NonWorkingSpouse)
+        {
+            taxableIncome += nonWorkingSpouseSurplusIncome;
+            netEarningsPerYear += nonWorkingSpouseSurplusIncome *= 0.75d; //taxed at 25%
+            taxBurdenYearly += nonWorkingSpouseSurplusIncome * 0.25d;
+        }   
     }
 
-//--// Prints processed data, updates string component
+    //--// Prints processed data, updates string component
     void PrintOutPut()
     {
         if (!AccountForSocialInsurance)
         {
-            SozialBurdenYearly.text = Stringify(0d);
-            SozialBurdenMonthly.text = Stringify(0d);
+            SozialBurdenYearly.text = StringFormat(0d);
+            SozialBurdenMonthly.text = StringFormat(0d);
         }   
         else
         {
-            SozialBurdenYearly.text = Stringify(socialBurdenYearly);
-            SozialBurdenMonthly.text = Stringify(socialBurdenYearly / 12d);
+            SozialBurdenYearly.text = StringFormat(socialBurdenYearly);
+            SozialBurdenMonthly.text = StringFormat(socialBurdenYearly / 12d);
         }
 
-        NetEearningsPerYear.text = Stringify(netEarningsPerYear);
-        NetEarningsPerMonth.text = Stringify(netEarningsPerYear / 12d);
-        GrossEearningsPerMonth.text = Stringify(grossRealEarningsPerMonth);
-        GrossEearningsPerYear.text = Stringify(grossRealEarningsPerMonth * 12);
-        TaxFreeAllowance.text = Stringify(taxFreeAllowance);
-        TaxableIncome.text = Stringify(taxableIncome);
-        TaxBurdenYearly.text = Stringify(taxBurdenYearly);
-        TaxBurdenMonthly.text = Stringify(taxBurdenYearly / 12d);
-        DeductedExpenses.text = Stringify(grossRealEarningsPerMonth * 12d * input_deductFactSlider.value);
+        NetEearningsPerYear.text = StringFormat(netEarningsPerYear);
+        NetEarningsPerMonth.text = StringFormat(netEarningsPerYear / 12d);
+        GrossEearningsPerMonth.text = StringFormat(grossRealEarningsPerMonth);
+        GrossEearningsPerYear.text = StringFormat(grossRealEarningsPerMonth * 12);
+        TaxFreeAllowance.text = StringFormat(taxFreeAllowance);
+        TaxableIncome.text = StringFormat(taxableIncome);
+        TaxBurdenYearly.text = StringFormat(taxBurdenYearly);
+        TaxBurdenMonthly.text = StringFormat(taxBurdenYearly / 12d);
+        DeductedExpenses.text = StringFormat(grossRealEarningsPerMonth * 12d * input_deductFactSlider.value);
     }
 
 //--// Visualises relative taxation bracket distribution (normalise by sum of brackets and extend sprites rectangularly by respective amount successively)
@@ -262,38 +274,63 @@ public class Taxomatico : MonoBehaviour
         bar_50.sizeDelta = new Vector2(0f, 10f);
     }
 
-    //String formatting and handling
-    string Stringify(double input)
+    string StringFormat(double input)
     {
         if (input == 0)
             return "€ " + "0";
-        else if (input > 10000d)
-            return "€ " + input.ToString("F0").Insert(2, ".");
-        else if (input > 1000d)
-            return "€ " + input.ToString("F0").Insert(1, ".");
+
+        string val = input.ToString("F0");
+
+        if (val.Length <= 3)
+            return "€ " + val;
+        else if (val.Length == 4)
+            return "€ " + val.Insert(1, ".");
+        else if (val.Length == 5)
+            return "€ " + val.Insert(2, ".");
+        else if (val.Length == 6)
+            return "€ " + val.Insert(3, ".");
+        else if (val.Length == 7)
+            return "€ " + val.Insert(4, ".").Insert(1, " ");
+        else if (val.Length == 8)
+            return "€ " + val.Insert(5, ".").Insert(2, " ");
+        else if (val.Length == 9)
+            return "€ " + val.Insert(6, ".").Insert(3, " ");
         else
-            return "€ " + input.ToString("F0");
+            return "error";
     }
 
-//--//Returns total social insurance burden for tax year
+//--// Returns total social insurance burden for tax year
     double GetSocialBurdenYearly(double grossRealIncome, double deductiblesFactor, double blackEarnings)
     {
-        double incomeBasis = grossRealIncome - (grossRealIncome * deductiblesFactor);
-        incomeBasis -= blackEarnings;
+        double referenceIncome = grossRealIncome - (grossRealIncome * deductiblesFactor) - blackEarnings;
 
-        double burden = incomeBasis * 0.205d;
+        // Cap ceiling based on provided yearly dataset
+        if (referenceIncome > finData.sozialVerzekering_14p_BracketCeiling)
+            referenceIncome = finData.sozialVerzekering_14p_BracketCeiling;
 
-        //Cap floor of value based on yearly minimum contributions data
+        double burden;
+
+        if(referenceIncome < finData.sozialVerzekering_21p_BracketCeiling)
+            burden = referenceIncome * 0.205d;
+        else
+        {
+            burden = finData.sozialVerzekering_21p_BracketCeiling * 0.205d;
+            burden += referenceIncome - (finData.sozialVerzekering_21p_BracketCeiling) * 0.1416d;
+        }
+
+        // Cap floor of value based on yearly minimum contributions data
         if (burden < finData.sozialVerzekering_MinQuarterlyContribution * 4)
             burden = finData.sozialVerzekering_MinQuarterlyContribution * 4;
+        else if (burden > finData.sozialVerzekering_MaxQuarterlyContribution * 4)
+            burden = finData.sozialVerzekering_MaxQuarterlyContribution * 4;
 
-        //Add admin fee using a value of 3.5%
+        // Add admin fee using a value of 3.5%
         burden *= 1.035d;
 
         return burden;
     }
 
-//--//Returns total taxburden for tax year, absolute value
+//--// Returns total taxburden for tax year, absolute value
     double GetTaxBurdenYearly(double taxableIncome)
     {
         double taxBurden = 0;
@@ -390,7 +427,7 @@ public class Taxomatico : MonoBehaviour
 
 
 //--// Returns the applicable tax free allowance, absolute value
-    double GetTaxFreeAllowance()
+    double GetTaxFreeAllowance(double grossYearlyReportedIncomeAfterDeductions)
     {
         double ceiling;
         if (Children == 0)
@@ -406,8 +443,35 @@ public class Taxomatico : MonoBehaviour
         else
             ceiling = finData.taxFreeAllowance + finData.allowanceIncreaseChildCount_4 + (finData.allowanceIncreasePerChildAboveCountFour * (Children - 4));
 
+        // Calculate and add the increase of the tax free allowance for the nonworking spouse, given circumstances
         if (NonWorkingSpouse)
-            ceiling += finData.allowanceIncreaseNonWorkingSpouse;
+        {
+            // Applied amount is the reported gross income minus business expenses, multiplied by the 'relative allowance cap' of the fiscal year data set
+            double appliedAmount = grossYearlyReportedIncomeAfterDeductions * finData.allowanceIncreaseNonWorkingSpouseRelativeCap;
+
+            // If the applied amount exceeds the absolute cap of the fiscal year data set, apply that instead
+            if (appliedAmount > finData.allowanceIncreaseNonWorkingSpouse)
+            {
+                ceiling += finData.taxFreeAllowance;
+                nonWorkingSpouseSurplusIncome = finData.allowanceIncreaseNonWorkingSpouse - finData.taxFreeAllowance;
+
+                amountShiftedOnNonWorkingSpouse = finData.taxFreeAllowance + nonWorkingSpouseSurplusIncome;
+            }                
+            else
+            {
+                if(appliedAmount <= finData.taxFreeAllowance)
+                {
+                    ceiling += appliedAmount;
+                    amountShiftedOnNonWorkingSpouse = appliedAmount;                    
+                }
+                else
+                {
+                    ceiling += finData.taxFreeAllowance;
+                    nonWorkingSpouseSurplusIncome = finData.allowanceIncreaseNonWorkingSpouse - finData.taxFreeAllowance;
+                    amountShiftedOnNonWorkingSpouse = finData.taxFreeAllowance + nonWorkingSpouseSurplusIncome;
+                }
+            }   
+        }   
 
         if (ceiling < 0)
             ceiling = 0;
